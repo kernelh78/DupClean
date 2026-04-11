@@ -1,0 +1,21 @@
+# 민감 정보 — 절대 커밋 금지
+.env
+credentials.json
+token.json
+
+# 임시 작업 공간
+.tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
