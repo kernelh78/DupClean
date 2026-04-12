@@ -1,0 +1,30 @@
+# Build outputs
+bin/
+obj/
+dist/
+publish/
+
+# IDE
+.vs/
+*.user
+.idea/
+*.suo
+
+# Secrets
+.env
+credentials.json
+token.json
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp
+.tmp/
+
+# NuGet
+*.nupkg
+packages/

@@ -1,0 +1,98 @@
+<Window x:Class="DupClean.UI.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DupClean — 설정"
+        Width="560" Height="480"
+        MinWidth="420" MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        Background="{StaticResource SurfaceBrush}"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+
+            <!-- ── 마스터 폴더 ─────────────────────────────── -->
+            <TextBlock Text="마스터 폴더 (보호 폴더)"
+                       FontWeight="SemiBold" FontSize="14" Margin="0,0,0,6"/>
+            <TextBlock Text="여기에 등록된 폴더의 파일은 자동 선택에서 제외됩니다."
+                       FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                       Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+            <!-- 폴더 목록 -->
+            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                    CornerRadius="4" Height="160" Margin="0,0,0,8">
+                <ListBox ItemsSource="{Binding MasterFolders}"
+                         SelectedItem="{Binding SelectedFolder}"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         FontSize="12"/>
+            </Border>
+
+            <!-- 추가/제거 버튼 -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                <Button Content="+ 폴더 추가"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding AddFolderCommand}"
+                        Padding="12,6" Margin="0,0,6,0"/>
+                <Button Content="− 제거"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding RemoveFolderCommand}"
+                        Padding="12,6"/>
+            </StackPanel>
+
+            <!-- ── pHash 설정 ──────────────────────────────── -->
+            <TextBlock Text="유사 이미지 탐지"
+                       FontWeight="SemiBold" FontSize="14" Margin="0,0,0,6"/>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                <CheckBox Content="유사 이미지(pHash) 탐지 활성화"
+                          IsChecked="{Binding ComputePHash}"
+                          FontSize="12" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="유사도 임계값"
+                           FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <Slider Grid.Column="1"
+                        Value="{Binding PHashThreshold}"
+                        Minimum="1" Maximum="16"
+                        TickFrequency="1" IsSnapToTickEnabled="True"
+                        VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding PHashThreshold}"
+                           FontSize="12" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="12,0,0,0" Width="20"/>
+            </Grid>
+            <TextBlock FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                       TextWrapping="Wrap" Margin="0,2,0,0">
+                낮을수록 엄격 (거의 동일), 높을수록 느슨 (많이 달라도 유사로 판정). 기본값: 8
+            </TextBlock>
+
+        </StackPanel>
+
+        <!-- ── 하단 버튼 ───────────────────────────────────── -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="취소"
+                    Style="{StaticResource GhostButton}"
+                    Padding="16,8" Margin="0,0,8,0"
+                    IsCancel="True"/>
+            <Button Content="저장"
+                    Style="{StaticResource PrimaryButton}"
+                    Padding="16,8"
+                    IsDefault="True"
+                    Click="SaveButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

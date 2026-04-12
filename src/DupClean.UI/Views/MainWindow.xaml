@@ -1,0 +1,446 @@
+<Window x:Class="DupClean.UI.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:DupClean.UI.Converters"
+        Title="DupClean — 중복 파일 정리"
+        Width="1100" Height="720"
+        MinWidth="800" MinHeight="500"
+        Background="{StaticResource SurfaceBrush}"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <conv:BoolToVisibilityConverter  x:Key="BoolToVisibility"/>
+        <conv:NullToCollapsedConverter   x:Key="NullToCollapsed"/>
+        <conv:BytesConverter             x:Key="BytesConverter"/>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="F5"   Command="{Binding ScanCommand}"/>
+        <KeyBinding Key="Z"    Modifiers="Ctrl" Command="{Binding UndoCommand}"/>
+        <KeyBinding Key="Escape" Command="{Binding CancelScanCommand}"/>
+    </Window.InputBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- 툴바 -->
+            <RowDefinition Height="Auto"/>   <!-- 진행 바 -->
+            <RowDefinition Height="*"/>      <!-- 본문 -->
+            <RowDefinition Height="Auto"/>   <!-- 상태바 -->
+        </Grid.RowDefinitions>
+
+        <!-- ── 툴바 ────────────────────────────────────────── -->
+        <Border Grid.Row="0" Padding="16,12"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 폴더 경로 -->
+                <Grid Grid.Column="0" Margin="0,0,8,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding FolderPath, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="10,8"
+                             FontSize="13"
+                             VerticalContentAlignment="Center"
+                             BorderBrush="{StaticResource BorderBrush}"
+                             BorderThickness="1,1,0,1"/>
+                    <Button Grid.Column="1"
+                            Content="폴더 선택"
+                            Style="{StaticResource GhostButton}"
+                            Command="{Binding BrowseFolderCommand}"
+                            BorderThickness="1"
+                            Margin="0"/>
+                </Grid>
+
+                <!-- 스캔 -->
+                <Button Grid.Column="1" Margin="4,0"
+                        Content="▶  스캔 (F5)"
+                        Style="{StaticResource PrimaryButton}"
+                        Command="{Binding ScanCommand}"/>
+
+                <!-- 취소 -->
+                <Button Grid.Column="2" Margin="4,0"
+                        Content="■  취소"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding CancelScanCommand}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"/>
+
+                <!-- 격리 이동 -->
+                <Button Grid.Column="3" Margin="4,0"
+                        Content="📦  격리 이동"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding QuarantineCommand}"/>
+
+                <!-- 휴지통 -->
+                <Button Grid.Column="4" Margin="4,0"
+                        Content="🗑  삭제"
+                        Style="{StaticResource DangerButton}"
+                        Command="{Binding DeleteCommand}"/>
+
+                <!-- 자동 선택 -->
+                <Button Grid.Column="5" Margin="4,0"
+                        Content="✨  자동 선택"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding SmartSelectAllCommand}"/>
+
+                <!-- 하드링크 교체 -->
+                <Button Grid.Column="6" Margin="4,0"
+                        Content="🔗  하드링크"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding HardLinkCommand}"
+                        ToolTip="선택 파일을 원본의 하드링크로 교체 (NTFS 전용, 같은 드라이브 내)"/>
+
+                <!-- Undo -->
+                <Button Grid.Column="7" Margin="4,0"
+                        Content="↩  Undo (Ctrl+Z)"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding UndoCommand}"/>
+
+                <!-- 설정 -->
+                <Button Grid.Column="8" Margin="4,0"
+                        Content="⚙"
+                        Style="{StaticResource GhostButton}"
+                        Command="{Binding OpenSettingsCommand}"
+                        ToolTip="설정 (마스터 폴더, pHash 옵션)"
+                        Padding="10,6" FontSize="14"/>
+            </Grid>
+        </Border>
+
+        <!-- ── 진행 바 ─────────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                Padding="16,8"
+                Background="#EFF6FF">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <ProgressBar Grid.Row="0"
+                             Value="{Binding ProgressPercent}"
+                             Maximum="100" Height="6"
+                             Foreground="{StaticResource PrimaryBrush}"
+                             BorderThickness="0"/>
+                <TextBlock Grid.Row="1" Margin="0,4,0,0"
+                           Text="{Binding ProgressText}"
+                           FontSize="12"
+                           Foreground="{StaticResource TextMutedBrush}"/>
+            </Grid>
+        </Border>
+
+        <!-- ── 본문 ────────────────────────────────────────── -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" MinWidth="240"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 왼쪽: 중복 그룹 목록 -->
+            <Border Grid.Column="0"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Padding="10,10"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel>
+                            <!-- 헤더 -->
+                            <StackPanel Orientation="Horizontal" Margin="6,0,0,8">
+                                <TextBlock Text="중복 그룹" FontWeight="SemiBold" FontSize="13"/>
+                                <TextBlock Margin="8,0,0,0"
+                                           Text="{Binding Groups.Count, StringFormat=({0}개)}"
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <!-- 필터 버튼 -->
+                            <StackPanel Orientation="Horizontal">
+                                <!-- 전체 -->
+                                <Button Command="{Binding SetFilterCommand}" CommandParameter="all"
+                                        Padding="10,5" Margin="0,0,4,0" FontSize="11">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFilterAll}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock>
+                                        <Run Text="전체 ("/>
+                                        <Run Text="{Binding Groups.Count, Mode=OneWay}"/>
+                                        <Run Text=")"/>
+                                    </TextBlock>
+                                </Button>
+                                <!-- 완전 중복 -->
+                                <Button Command="{Binding SetFilterCommand}" CommandParameter="exact"
+                                        Padding="10,5" Margin="0,0,4,0" FontSize="11">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFilterExact}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock>
+                                        <Run Text="완전 중복 ("/>
+                                        <Run Text="{Binding ExactCount, Mode=OneWay}"/>
+                                        <Run Text=")"/>
+                                    </TextBlock>
+                                </Button>
+                                <!-- 유사 이미지 -->
+                                <Button Command="{Binding SetFilterCommand}" CommandParameter="similar"
+                                        Padding="10,5" FontSize="11">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource GhostButton}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFilterSimilar}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock>
+                                        <Run Text="유사 이미지 ("/>
+                                        <Run Text="{Binding SimilarCount, Mode=OneWay}"/>
+                                        <Run Text=")"/>
+                                    </TextBlock>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <ListBox Grid.Row="1"
+                             ItemsSource="{Binding Groups}"
+                             SelectedItem="{Binding SelectedGroup}"
+                             BorderThickness="0"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding GroupLabel}"
+                                           TextWrapping="Wrap"
+                                           Padding="12,8"
+                                           FontSize="12"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- 요약 -->
+                    <Border Grid.Row="2" Padding="12,8"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                            Visibility="{Binding ScanSummary, Converter={StaticResource NullToCollapsed}}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" FontSize="11" Foreground="{StaticResource TextMutedBrush}">
+                                <Run Text="스캔 파일: "/>
+                                <Run Text="{Binding ScanSummary.ScannedFiles, StringFormat={}{0:N0}개, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Grid.Row="1" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,6">
+                                <Run Text="절약 가능: "/>
+                                <Run Text="{Binding ScanSummary.ReclaimableBytes, Converter={StaticResource BytesConverter}, Mode=OneWay}"/>
+                            </TextBlock>
+                            <Button Grid.Row="2"
+                                    Content="📊  CSV 내보내기"
+                                    Style="{StaticResource GhostButton}"
+                                    Command="{Binding ExportCsvCommand}"
+                                    Padding="8,5" FontSize="11"
+                                    HorizontalAlignment="Left"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 구분선 드래그 -->
+            <GridSplitter Grid.Column="1" Width="5"
+                          HorizontalAlignment="Stretch" Background="Transparent"/>
+
+            <!-- 오른쪽: 선택된 그룹 파일 목록 / 이미지 비교 -->
+            <Border Grid.Column="2">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- 헤더 -->
+                    <Border Grid.Row="0" Padding="16,10"
+                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontWeight="SemiBold" FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="파일 목록"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedGroup.IsSimilar}" Value="True">
+                                                <Setter Property="Text" Value="이미지 비교"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Margin="8,0,0,0" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="파일을 선택 후 격리 이동 또는 삭제"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedGroup.IsSimilar}" Value="True">
+                                                <Setter Property="Text" Value="유사 이미지를 확인하고 삭제할 파일을 선택하세요"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Exact 중복: 파일 목록 테이블 -->
+                    <ListView Grid.Row="1"
+                              ItemsSource="{Binding SelectedGroup.Files}"
+                              BorderThickness="0"
+                              SelectionMode="Extended"
+                              Visibility="{Binding SelectedGroup.IsExact, Converter={StaticResource BoolToVisibility}}">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem Header="📂  폴더에서 보기"
+                                                      Command="{Binding OpenInExplorerCommand}"/>
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="30">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="파일명" Width="260"
+                                               DisplayMemberBinding="{Binding FileName}"/>
+                                <GridViewColumn Header="크기"   Width="90"
+                                               DisplayMemberBinding="{Binding SizeText}"/>
+                                <GridViewColumn Header="수정일" Width="140"
+                                               DisplayMemberBinding="{Binding Modified}"/>
+                                <GridViewColumn Header="경로"   Width="400"
+                                               DisplayMemberBinding="{Binding FullPath}"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <!-- Similar: 이미지 비교 카드 -->
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Visibility="{Binding SelectedGroup.IsSimilar, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl ItemsSource="{Binding SelectedGroup.Files}" Margin="12">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="6" Padding="10"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1" CornerRadius="8"
+                                            Width="280" Background="White">
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="📂  폴더에서 보기"
+                                                          Command="{Binding OpenInExplorerCommand}"/>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        <StackPanel>
+                                            <!-- 선택 체크박스 + 파일명 -->
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <CheckBox IsChecked="{Binding IsSelected}"
+                                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{Binding FileName}"
+                                                           FontWeight="SemiBold" FontSize="12"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="220"/>
+                                            </StackPanel>
+
+                                            <!-- 썸네일 -->
+                                            <Border BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="1" Height="180"
+                                                    Background="#F8FAFC">
+                                                <Image Source="{Binding ThumbnailSource}"
+                                                       Stretch="Uniform"
+                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            </Border>
+
+                                            <!-- 파일 정보 -->
+                                            <StackPanel Margin="0,8,0,0">
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{StaticResource TextMutedBrush}">
+                                                    <Run Text="크기: "/>
+                                                    <Run Text="{Binding SizeText, Mode=OneWay}"/>
+                                                </TextBlock>
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{StaticResource TextMutedBrush}">
+                                                    <Run Text="수정: "/>
+                                                    <Run Text="{Binding Modified, Mode=OneWay}"/>
+                                                </TextBlock>
+                                                <TextBlock FontSize="10"
+                                                           Foreground="{StaticResource TextMutedBrush}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding FullPath}"
+                                                           ToolTip="{Binding FullPath}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ── 상태바 ─────────────────────────────────────── -->
+        <Border Grid.Row="3" Padding="16,8"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Background="White">
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontSize="12"
+                       Foreground="{StaticResource TextMutedBrush}"/>
+        </Border>
+    </Grid>
+</Window>
