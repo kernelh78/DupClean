@@ -118,3 +118,6 @@ dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c R
 ## 라이선스
 
 MIT License
+
+## 추가예정
+해쉬 탐색시 진행률/예상소요시간 표기
