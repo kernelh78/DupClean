@@ -22,6 +22,7 @@
         <Setter Property="FontFamily"        Value="{StaticResource UiFont}"/>
         <Setter Property="FontSize"          Value="13"/>
         <Setter Property="UseLayoutRounding" Value="True"/>
+        <Setter Property="Icon"              Value="pack://application:,,,/DupClean;component/Assets/Icon/DupClean.ico"/>
     </Style>
 
     <Style x:Key="Card" TargetType="Border">
