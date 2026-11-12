@@ -3,6 +3,7 @@ using System.Windows;
 using DupClean.Core.Actions;
 using DupClean.Core.Data;
 using DupClean.Core.Hashing;
+using DupClean.UI.Services;
 using DupClean.UI.ViewModels;
 using DupClean.UI.Views;
 using Serilog;
@@ -12,6 +13,7 @@ namespace DupClean.UI;
 public partial class App : Application
 {
     private PHashCache? _pHashCache;
+    private FileHashCache? _fileHashCache;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -39,8 +41,12 @@ public partial class App : Application
         var undoManager    = DupCleanServiceFactory.CreateUndoManager(Path.Combine(dataDir, "dupclean.db"));
         var settingsManager = DupCleanServiceFactory.CreateSettingsManager(dataDir);
         _pHashCache        = DupCleanServiceFactory.CreatePHashCache(dataDir);
+        _fileHashCache     = DupCleanServiceFactory.CreateFileHashCache(dataDir);
 
-        var viewModel = new MainViewModel(undoManager, _pHashCache, settingsManager);
+        // 창을 만들기 전에 테마(라이트/다크)를 먼저 적용해야 첫 화면부터 올바른 색으로 뜬다.
+        ThemeManager.Apply(ThemeManager.Parse(settingsManager.Current.Theme));
+
+        var viewModel = new MainViewModel(undoManager, _pHashCache, settingsManager, _fileHashCache);
         var window    = new MainWindow { DataContext = viewModel };
 
         MainWindow = window;
@@ -52,6 +58,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _pHashCache?.Dispose();
+        _fileHashCache?.Dispose();
         Log.CloseAndFlush();
         base.OnExit(e);
     }

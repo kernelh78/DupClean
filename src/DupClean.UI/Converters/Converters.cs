@@ -28,6 +28,19 @@ public sealed class NullToCollapsedConverter : IValueConverter
         => Binding.DoNothing;
 }
 
+/// <summary>값이 null일 때만 보이게 (빈 화면 안내 문구용).</summary>
+[ValueConversion(typeof(object), typeof(Visibility))]
+public sealed class NullToVisibleConverter : IValueConverter
+{
+    public static readonly NullToVisibleConverter Instance = new();
+
+    public object Convert(object value, Type t, object param, CultureInfo c)
+        => value is null ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type t, object param, CultureInfo c)
+        => Binding.DoNothing;
+}
+
 [ValueConversion(typeof(long), typeof(string))]
 public sealed class BytesConverter : IValueConverter
 {

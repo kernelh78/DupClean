@@ -24,6 +24,12 @@
     <ProjectReference Include="..\DupClean.Core\DupClean.Core.csproj" />
   </ItemGroup>
 
+  <!-- 글꼴(Figtree, SIL Open Font License)을 EXE 안에 포함 -->
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\*.ttf" />
+    <Resource Include="Assets\Fonts\OFL.txt" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />

@@ -13,6 +13,9 @@ public sealed class AppSettings
 
     /// <summary>pHash Hamming Distance 임계값 (0~16). 낮을수록 엄격.</summary>
     public int PHashThreshold { get; set; } = 8;
+
+    /// <summary>화면 테마: "System"(Windows 설정을 따름), "Light", "Dark".</summary>
+    public string Theme { get; set; } = "System";
 }
 
 /// <summary>설정 파일 로드·저장 담당.</summary>

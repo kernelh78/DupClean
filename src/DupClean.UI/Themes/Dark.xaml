@@ -1,0 +1,46 @@
+<!--
+  다크 테마 색상. 값은 astryx(@astryxdesign/theme-neutral) 다크 토큰에서 가져왔다.
+  라이트 테마(Light.xaml)와 키 이름이 완전히 같아야 한다.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 배경 -->
+    <SolidColorBrush x:Key="BodyBrush"         Color="#1B1B1B"/>   <!-- color-background-body -->
+    <SolidColorBrush x:Key="CardBrush"         Color="#262626"/>   <!-- color-background-surface -->
+    <SolidColorBrush x:Key="InputBrush"        Color="#1F1F1F"/>
+    <SolidColorBrush x:Key="HoverBrush"        Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="PressedBrush"      Color="#1FFFFFFF"/>
+    <SolidColorBrush x:Key="SelectedBrush"     Color="#303030"/>
+    <SolidColorBrush x:Key="TrackBrush"        Color="#303030"/>   <!-- color-background-gray -->
+
+    <!-- 테두리 -->
+    <SolidColorBrush x:Key="BorderBrush"       Color="#1AFFFFFF"/> <!-- color-border -->
+    <SolidColorBrush x:Key="BorderStrongBrush" Color="#525252"/>   <!-- color-border-emphasized -->
+
+    <!-- 글자 -->
+    <SolidColorBrush x:Key="TextPrimaryBrush"   Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C6C6C6"/>
+    <SolidColorBrush x:Key="TextMutedBrush"     Color="#9E9E9E"/>
+    <SolidColorBrush x:Key="TextDisabledBrush"  Color="#525252"/>
+
+    <!-- 강조 -->
+    <SolidColorBrush x:Key="AccentBrush"        Color="#F1F1F1"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"   Color="#D4D4D4"/>
+    <SolidColorBrush x:Key="OnAccentBrush"      Color="#1B1B1B"/>
+
+    <!-- 상태색 -->
+    <SolidColorBrush x:Key="ErrorBrush"         Color="#FF705D"/>
+    <SolidColorBrush x:Key="ErrorHoverBrush"    Color="#FF8C7C"/>
+    <SolidColorBrush x:Key="OnErrorBrush"       Color="#1B1B1B"/>
+    <SolidColorBrush x:Key="ErrorMutedBrush"    Color="#5B2B28"/>
+    <SolidColorBrush x:Key="SuccessBrush"       Color="#64AF4C"/>
+    <SolidColorBrush x:Key="SuccessMutedBrush"  Color="#2B422B"/>
+    <SolidColorBrush x:Key="InfoBrush"          Color="#6D9CFE"/>
+    <SolidColorBrush x:Key="InfoMutedBrush"     Color="#253C5A"/>
+    <SolidColorBrush x:Key="WarningBrush"       Color="#EEC448"/>
+
+    <!-- 포커스 링 -->
+    <SolidColorBrush x:Key="FocusBrush"         Color="#6D9CFE"/>
+
+</ResourceDictionary>
