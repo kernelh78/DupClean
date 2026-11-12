@@ -43,6 +43,14 @@ DupClean은 사진·동영상·문서에서 중복 파일을 자동으로 탐지
 | **마스터 폴더 보호** | 지정 폴더 내 파일은 자동 선택에서 제외 |
 | **CSV 내보내기** | 스캔 결과를 CSV 파일로 저장 |
 
+### 사용성·성능
+| 기능 | 설명 |
+|------|------|
+| **진행 상황 표시** | 단계(1/3~3/3), 진행률, 처리량(건수·용량), 처리 속도, 경과 시간, **남은 시간(예상)**, 현재 처리 중인 파일 |
+| **라이트 / 다크 / 시스템 테마** | Windows 설정을 따라가거나 직접 선택. 디자인은 astryx(neutral) 기준 |
+| **빠른 재스캔** | 파일 해시와 유사 이미지 결과를 SQLite에 저장해 **변경 없는 파일은 다시 읽지 않음** |
+| **HDD/SSD 자동 최적화** | 저장장치 종류를 감지해 동시에 읽는 파일 수를 조절 (HDD는 적게) |
+
 ---
 
 ## 스크린샷
@@ -89,7 +97,8 @@ dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c R
 
 ## 설정
 
-⚙ 버튼으로 설정 창 열기:
+⚙ 버튼으로 설정 창 열기 (☀/🌙 버튼으로 라이트·다크를 바로 전환할 수도 있음):
+- **화면 테마**: 시스템 설정 / 라이트 / 다크 (선택 즉시 미리 보기, 저장해야 유지)
 - **마스터 폴더**: 이 폴더의 파일은 자동 선택에서 절대 제외
 - **pHash 임계값**: 유사 이미지 판정 민감도 (1=엄격, 16=느슨, 기본 8)
 - **pHash 비활성화**: 이미지 유사도 탐지를 끄면 스캔 속도 대폭 향상
@@ -102,8 +111,9 @@ dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c R
 |------|------|
 | 언어/런타임 | C# 12 / .NET 8 LTS |
 | UI | WPF + CommunityToolkit.Mvvm |
-| 이미지 처리 | SixLabors.ImageSharp |
-| 데이터베이스 | SQLite + EF Core (Undo 로그) |
+| 디자인 | astryx(neutral) 디자인 토큰을 WPF로 이식, 글꼴 Figtree (한글은 맑은 고딕) |
+| 이미지 처리 | SixLabors.ImageSharp (아래 라이선스 참고) |
+| 데이터베이스 | SQLite + EF Core (Undo 로그), SQLite 캐시 (파일 해시·pHash) |
 | 로깅 | Serilog + RollingFile |
 | 테스트 | xUnit |
 
@@ -113,11 +123,20 @@ dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c R
 
 `%LOCALAPPDATA%\DupClean\logs\dupclean-{날짜}.log`
 
+## 데이터 위치
+
+`%LOCALAPPDATA%\DupClean\` — 설정(`settings.json`), Undo 기록(`dupclean.db`), 캐시(`filehash.db`, `phash.db`).
+캐시는 지워도 안전합니다(다음 스캔이 처음처럼 느려질 뿐).
+
 ---
 
 ## 라이선스
 
 MIT License
 
-## 추가예정
-해쉬 탐색시 진행률/예상소요시간 표기
+### 서드파티 라이선스
+| 구성 요소 | 라이선스 | 비고 |
+|-----------|----------|------|
+| SixLabors.ImageSharp | Six Labors Split License | 오픈소스·소규모(연 매출 100만 달러 미만) 사용은 무료이나, **3.2.0 이상은 빌드 시 라이선스 키 필요**. 현재 3.1.12 사용 중이며 알려진 취약점이 남아 있어 키 발급 후 업그레이드 예정 ([상세](report_v0.2.md)) |
+| Figtree 글꼴 | SIL Open Font License 1.1 | `src/DupClean.UI/Assets/Fonts/OFL.txt` |
+| astryx 디자인 토큰 | MIT (Meta) | 색상·모서리 값만 참고, 코드는 사용하지 않음 |

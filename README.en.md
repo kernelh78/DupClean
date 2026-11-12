@@ -43,6 +43,14 @@ Unlike simple filename comparison, DupClean uses both **SHA-256 hashing** and **
 | **Master Folder Protection** | Files in designated folders are never auto-selected |
 | **CSV Export** | Save scan results to a CSV file |
 
+### Usability & Performance
+| Feature | Description |
+|---------|-------------|
+| **Live Progress** | Phase (1/3–3/3), progress, throughput (files / bytes), speed, elapsed time, **estimated time remaining**, and the file being processed |
+| **Light / Dark / System Theme** | Follows Windows or set manually. Design based on astryx (neutral) |
+| **Fast Re-scan** | File hashes and similar-image results are cached in SQLite, so **unchanged files are not read again** |
+| **HDD/SSD Auto-tuning** | Detects the storage type and adjusts how many files are read in parallel (fewer on HDD) |
+
 ---
 
 ## Screenshots
@@ -89,7 +97,8 @@ dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c R
 
 ## Settings
 
-Click ⚙ to open Settings:
+Click ⚙ to open Settings (the ☀/🌙 button switches light/dark instantly):
+- **Theme**: System / Light / Dark (previewed immediately; press Save to keep it)
 - **Master Folders**: Files in these folders are always excluded from auto-select
 - **pHash Threshold**: Similar image sensitivity (1 = strict, 16 = loose, default 8)
 - **Disable pHash**: Turn off similar image detection for much faster scans
@@ -102,8 +111,9 @@ Click ⚙ to open Settings:
 |------|--------|
 | Language / Runtime | C# 12 / .NET 8 LTS |
 | UI | WPF + CommunityToolkit.Mvvm |
-| Image Processing | SixLabors.ImageSharp |
-| Database | SQLite + EF Core (Undo log) |
+| Design | astryx (neutral) design tokens ported to WPF; Figtree font (Malgun Gothic for Korean) |
+| Image Processing | SixLabors.ImageSharp (see License below) |
+| Database | SQLite + EF Core (Undo log), SQLite caches (file hashes, pHash) |
 | Logging | Serilog + RollingFile |
 | Testing | xUnit |
 
@@ -113,8 +123,20 @@ Click ⚙ to open Settings:
 
 `%LOCALAPPDATA%\DupClean\logs\dupclean-{date}.log`
 
+## Data Location
+
+`%LOCALAPPDATA%\DupClean\` — settings (`settings.json`), undo history (`dupclean.db`), caches (`filehash.db`, `phash.db`).
+The caches are safe to delete (the next scan is just as slow as the first).
+
 ---
 
 ## License
 
 MIT License
+
+### Third-party licenses
+| Component | License | Note |
+|-----------|---------|------|
+| SixLabors.ImageSharp | Six Labors Split License | Free for open-source and small (< USD 1M annual revenue) use, but **versions 3.2.0+ require a license key at build time**. Currently on 3.1.12, which has known vulnerabilities; upgrade planned once a key is issued ([details](report_v0.2.md)) |
+| Figtree font | SIL Open Font License 1.1 | `src/DupClean.UI/Assets/Fonts/OFL.txt` |
+| astryx design tokens | MIT (Meta) | Only color / radius values were referenced; no code is used |

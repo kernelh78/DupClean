@@ -1,5 +1,6 @@
 using System.IO.Enumeration;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 using DupClean.Core.Models;
 using Serilog;
 
@@ -28,13 +29,44 @@ public sealed class IoScanner : IFileScanner
             MatchType = MatchType.Simple,
         };
 
-        // 오프로드: 파일 열거는 I/O bound이지만 동기 API이므로 ThreadPool로 넘김
-        var entries = await Task.Run(() => EnumerateEntries(rootPath, enumOptions, options), ct);
-
-        foreach (var entry in entries)
+        // 파일 열거는 동기 API라서 별도 스레드에서 돌리고, 찾는 즉시 채널로 넘긴다.
+        // (이전에는 열거가 호출한 쪽 스레드 — UI 스레드 — 에서 실행돼 수집 중 창이 멈칫했고,
+        //  수집이 끝날 때까지 진행 상황도 볼 수 없었다.)
+        var channel = Channel.CreateBounded<FileEntry>(new BoundedChannelOptions(4096)
         {
-            ct.ThrowIfCancellationRequested();
-            yield return entry;
+            SingleReader = true,
+            SingleWriter = true,
+        });
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var token = linked.Token;
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                foreach (var entry in EnumerateEntries(rootPath, enumOptions, options))
+                {
+                    token.ThrowIfCancellationRequested();
+                    channel.Writer.WriteAsync(entry, token).AsTask().GetAwaiter().GetResult();
+                }
+                channel.Writer.TryComplete();
+            }
+            catch (Exception ex)
+            {
+                channel.Writer.TryComplete(ex);
+            }
+        }, CancellationToken.None);
+
+        try
+        {
+            await foreach (var entry in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+                yield return entry;
+        }
+        finally
+        {
+            // 소비자가 중간에 그만둬도 열거 스레드가 막혀 남지 않도록 정리
+            linked.Cancel();
         }
     }
 

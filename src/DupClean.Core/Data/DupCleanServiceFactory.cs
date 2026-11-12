@@ -24,6 +24,10 @@ public static class DupCleanServiceFactory
     public static PHashCache CreatePHashCache(string dataDir) =>
         new(Path.Combine(dataDir, "phash.db"));
 
+    /// <summary>전체 해시(SHA-256) SQLite 캐시를 생성해 반환. 재스캔 시 파일을 다시 읽지 않게 해 준다.</summary>
+    public static FileHashCache CreateFileHashCache(string dataDir) =>
+        new(Path.Combine(dataDir, "filehash.db"));
+
     /// <summary>앱 설정 매니저를 생성해 반환.</summary>
     public static AppSettingsManager CreateSettingsManager(string dataDir) =>
         new(dataDir);
