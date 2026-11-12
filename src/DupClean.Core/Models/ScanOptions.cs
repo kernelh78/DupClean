@@ -22,8 +22,20 @@ public sealed class ScanOptions
     /// <summary>숨김 파일·폴더 포함 여부.</summary>
     public bool IncludeHidden { get; init; } = false;
 
-    /// <summary>해시 스레드 수.</summary>
+    /// <summary>해시 스레드 수. AutoTuneThreads가 꺼져 있을 때만 쓰인다.</summary>
     public int HashThreadCount { get; init; } = Environment.ProcessorCount;
+
+    /// <summary>
+    /// 유사 이미지 분석 스레드 수. 0이면 HashThreadCount와 같게 쓴다. AutoTuneThreads가 꺼져 있을 때만 쓰인다.
+    /// (해시 단계와 이미지 단계는 디스크 접근 방식이 달라 최적 스레드 수가 서로 다르다.)
+    /// </summary>
+    public int ImageThreadCount { get; init; } = 0;
+
+    /// <summary>
+    /// 저장장치(HDD/SSD)를 자동으로 감지해 스레드 수를 정한다. 기본 켜짐.
+    /// HDD는 여러 파일을 동시에 읽으면 오히려 느려지므로 적게, SSD는 많이 쓴다.
+    /// </summary>
+    public bool AutoTuneThreads { get; init; } = true;
 
     /// <summary>Sparse Hashing 샘플 크기 (바이트). 기본 1MB.</summary>
     public int SampleSizeBytes { get; init; } = 1024 * 1024;

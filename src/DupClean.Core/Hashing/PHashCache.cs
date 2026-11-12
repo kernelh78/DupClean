@@ -26,15 +26,16 @@ public sealed class PHashCache : IDisposable
     private void EnsureSchema()
     {
         using var cmd = _conn.CreateCommand();
+        // v2: 축소 디코딩으로 바뀐 pHash 계산 방식. 이전(v1) 값과 미세하게 달라서 섞이지 않도록 테이블을 분리한다.
         cmd.CommandText = """
-            CREATE TABLE IF NOT EXISTS phash_cache (
+            DROP TABLE IF EXISTS phash_cache;
+            CREATE TABLE IF NOT EXISTS phash_cache_v2 (
                 path  TEXT    NOT NULL,
                 size  INTEGER NOT NULL,
                 mtime INTEGER NOT NULL,
                 hash  INTEGER NOT NULL,
                 PRIMARY KEY (path)
             );
-            CREATE INDEX IF NOT EXISTS idx_phash_size ON phash_cache(size);
             """;
         cmd.ExecuteNonQuery();
     }
@@ -44,7 +45,7 @@ public sealed class PHashCache : IDisposable
     {
         using var cmd = _conn.CreateCommand();
         cmd.CommandText =
-            "SELECT hash FROM phash_cache WHERE path=@p AND size=@s AND mtime=@m";
+            "SELECT hash FROM phash_cache_v2 WHERE path=@p AND size=@s AND mtime=@m";
         cmd.Parameters.AddWithValue("@p", entry.FullPath);
         cmd.Parameters.AddWithValue("@s", entry.Size);
         cmd.Parameters.AddWithValue("@m", entry.LastModified.Ticks);
@@ -59,7 +60,7 @@ public sealed class PHashCache : IDisposable
         {
             using var cmd = _conn.CreateCommand();
             cmd.CommandText = """
-                INSERT OR REPLACE INTO phash_cache (path, size, mtime, hash)
+                INSERT OR REPLACE INTO phash_cache_v2 (path, size, mtime, hash)
                 VALUES (@p, @s, @m, @h)
                 """;
             cmd.Parameters.AddWithValue("@p", entry.FullPath);
@@ -81,7 +82,7 @@ public sealed class PHashCache : IDisposable
                 using var cmd = _conn.CreateCommand();
                 cmd.Transaction = tx;
                 cmd.CommandText = """
-                    INSERT OR REPLACE INTO phash_cache (path, size, mtime, hash)
+                    INSERT OR REPLACE INTO phash_cache_v2 (path, size, mtime, hash)
                     VALUES (@p, @s, @m, @h)
                     """;
 
