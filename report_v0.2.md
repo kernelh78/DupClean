@@ -139,7 +139,7 @@
 | Microsoft.Extensions.Caching.Memory 8.0.0 (High) | EF Core 8.0.34 업그레이드로 해결 |
 | SQLitePCLRaw.lib.e_sqlite3 2.1.6 (High) | 〃 |
 | System.Text.Json 8.0.0 (High 2건) | 〃 |
-| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요 |
+| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요. **키 신청 완료(2026-11-13), 발급 대기**. 실제 영향은 6.3 참고 |
 
 확인 방법: `dotnet list src\DupClean.Core\DupClean.Core.csproj package --vulnerable --include-transitive`
 
@@ -148,10 +148,44 @@
 - 가격 페이지: 연 매출 100만 달러 미만은 **무료 Community 라이선스를 신청**할 수 있다 (신청: https://licensing.sixlabors.com ). → 사장님이 들으신 내용과 일치.
 - **빌드 시 라이선스 키**: 직접 참조하는 프로젝트는 3.2.0(3.x 계열) / 4.0.0(4.x)부터 키가 있어야 빌드된다 (없으면 Release 빌드 실패: "No Six Labors license found"). 3.1.12 이하는 키 불필요.
 - 키 설정: `sixlabors.lic` 파일을 프로젝트 폴더에 두거나 환경변수 `SIXLABORS_LICENSE_KEY`. 공개 저장소에는 **assembly 범위 Community 키만** 올려도 되고, 무제한 키·상용 키는 비공개(저장소 시크릿)로 관리.
-- **결정/실행 필요(사장님)**: ① Community 라이선스 신청 → ② 키를 받으면 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 키 발급은 계정·개인정보가 필요해 대신 할 수 없음.
+- **진행 상황**: ① Community 라이선스 **신청 완료 (2026-11-13)** → ② 키 수신 대기 → ③ 키를 받으면 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 신청은 계정·개인정보가 필요해 사장님이 직접 진행했다. 신청서 양식과 필요한 값은 6.4 참고.
 - 참고: `README`는 MIT라고 되어 있으나 저장소에 `LICENSE` 파일이 없고, `plan_v0.1.md`의 "ImageSharp (MIT)"는 부정확하다(3.0부터 Split License). LICENSE 파일 추가는 저작권자 표기가 필요해 결정을 남겨 둔다.
 
 출처: [Six Labors 가격](https://sixlabors.com/pricing/) · [ImageSharp LICENSE](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE) · [Six Labors 문서](https://docs.sixlabors.com/articles/imagesharp/)
+
+### 6.3 ImageSharp 취약점 6건의 실제 영향 (2026-11-13 분석)
+권고문을 직접 읽고, DupClean 코드가 해당 기능을 실제로 쓰는지 대조했다. 앱에서 ImageSharp를 쓰는 곳은 `Hashing/PHashCalculator.cs` 한 곳이며, 하는 일은 **이미지 읽기(`Image.LoadAsync`)와 크기 축소(`Resize`)뿐**이다. 이미지 저장(`Save`)은 테스트 코드에만 있고, 히스토그램·ICC 프로필 접근은 없다.
+
+| 권고 | 심각도 | 내용 | DupClean 영향 |
+|------|:-----:|------|---------------|
+| [GHSA-v76p-62qx-wwq2](https://github.com/advisories/GHSA-v76p-62qx-wwq2) | High | 타일형 팩스 TIFF 읽기 중 힙 범위 밖 쓰기 | **해당** — `.tif/.tiff`를 읽음. 앱이 종료될 수 있음 |
+| [GHSA-wmxv-xphr-5c9g](https://github.com/advisories/GHSA-wmxv-xphr-5c9g) | Medium | BigTIFF 읽기가 끝나지 않는 반복 | **해당** — 스캔이 멈출 수 있음 |
+| [GHSA-gwg2-r3hj-4w44](https://github.com/advisories/GHSA-gwg2-r3hj-4w44) | Medium | ICC 프로필(CLUT) 해석 시 메모리 과다 할당 | 가능성 낮음 — 앱이 프로필을 해석하지 않음 (실행 중 확인은 못 함) |
+| [GHSA-j9gm-c75j-xc9q](https://github.com/advisories/GHSA-j9gm-c75j-xc9q) | High | TIFF CCITT T4 **저장**(인코더) 버퍼 오류 | 해당 없음 — 앱은 저장하지 않음 |
+| [GHSA-jjfr-hcj7-qf5w](https://github.com/advisories/GHSA-jjfr-hcj7-qf5w) | High | TIFF CCITT T6 **저장**(인코더) 버퍼 오류 | 해당 없음 |
+| [GHSA-j3p4-wp97-rph4](https://github.com/advisories/GHSA-j3p4-wp97-rph4) | High | 히스토그램 보정의 인덱스 검증 누락 | 해당 없음 — 기능을 쓰지 않음 |
+
+- 6건 모두 CVSS상 영향은 **가용성(앱 종료·멈춤)** 뿐이고 기밀성·무결성 영향은 없다 (`C:N/I:N`).
+- 공격 조건: 조작된 TIFF 파일이 스캔하는 폴더에 들어 있어야 한다. (CVSS의 `AV:N`은 서버에서 이미지를 받는 라이브러리 일반 사용을 기준으로 한 값이고, 로컬 도구인 DupClean은 해당 파일이 폴더에 있어야 한다.)
+- 패치 버전: 3.x는 **3.2.0**, 4.x는 4.1.2 (v76p는 4.1.1).
+- **키 없이 위험을 줄이는 방법(미적용)**: 유사 이미지 분석 대상에서 TIFF를 제외 (`PHashCalculator.ImageExtensions`에서 `.tiff/.tif` 제거). 해당하는 2건을 사실상 차단하고, 완전 중복 탐지(해시 기반)는 TIFF도 그대로 된다. 대신 TIFF의 *유사 이미지*는 찾지 못한다. 키가 오면 업그레이드로 해결되므로 **키 발급 전 임시 조치로 적용할지 결정이 남아 있다.**
+- 다른 선택지: ImageSharp를 Windows 내장 이미지 기능(WIC)으로 교체하면 라이선스 키·취약점 문제가 함께 사라지지만 작업량이 중간이고 속도는 다시 측정해야 하며, 해당 부분이 Windows 전용이 된다.
+
+### 6.4 라이선스 키 신청 정보 (2026-11-13 신청)
+- 신청처: https://licensing.sixlabors.com (신청서 → "Apply Now"). 등록은 Paddle을 통해 처리되며 일부 국가는 지원되지 않을 수 있다.
+- 신청서 항목: 이름·이메일, 종류(Hobbyist / OpenSource / NonProfit / Commercial), **Assembly 이름**(대소문자 정확히), 프로젝트 이름·웹사이트, (선택) 등록번호, 메시지. OpenSource는 공개 저장소 링크가 필요하다.
+- DupClean의 Assembly 이름: ImageSharp를 직접 참조하는 `DupClean.Core`, `DupClean.Tests`, 그리고 실행 프로젝트 `DupClean`.
+- OpenSource / Hobbyist는 **키가 자동 발급**되고, 그 외 종류는 심사를 거친다. OpenSource 키는 assembly 범위라 **공개 저장소에 올려도 된다**고 안내돼 있다.
+- 키에는 만료가 있다. **만료 전 90일 안에 같은 이메일로 재신청**해 갱신한다 (이메일은 계속 쓸 수 있는 주소로).
+- 키 신청 서류가 되는 `LICENSE` 파일이 아직 없다 (README만 MIT로 표기). 추가 시 저작권자 이름이 필요하다.
+
+**키를 받은 뒤 할 일 (체크리스트)**
+1. 키 형식 확인 (파일 `sixlabors.lic` 또는 문자열 — 형식은 안내 페이지에 명시되어 있지 않음).
+2. `DupClean.Core.csproj`, `DupClean.Tests.csproj`의 ImageSharp를 3.2.0 이상으로 변경.
+3. 키 연결: `sixlabors.lic`을 프로젝트 폴더에 두거나 환경변수 `SIXLABORS_LICENSE_KEY` 설정. **assembly 범위 키만** 저장소에 올리고, 제한 없는 키·상용 키는 올리지 않는다.
+4. `dotnet test`(83개) 통과, `publish.bat` Release 빌드 성공 확인.
+5. 재측정: 유사 이미지 판정이 바뀌지 않았는지 (5장의 정답 쌍 검증 재실행), 캐시 때문에 pHash 캐시를 다시 계산해야 하는지 확인.
+6. `dotnet list ... package --vulnerable`로 ImageSharp 경고가 사라졌는지 확인, README 서드파티 표와 이 보고서의 6장을 갱신.
 
 ---
 
@@ -159,7 +193,8 @@
 
 | 항목 | 우선순위 | 비고 |
 |------|---------|------|
-| ImageSharp 라이선스 키 발급 → 업그레이드 | **높음** | 보안 취약점 6건 해결 (6.2) |
+| ImageSharp 라이선스 키 발급 → 업그레이드 | **높음** | 키 **신청 완료(2026-11-13), 발급 대기**. 키를 받으면 6.4 체크리스트대로 진행 |
+| (임시 조치 결정) 유사 이미지 분석에서 TIFF 제외 | 중 | 키 발급 전에 실제로 닿는 취약점 2건을 줄이는 방법 (6.3). 적용 여부 미정 |
 | 유사 이미지 오탐 개선 | 중 | dHash/pHash + 그룹 병합 기준 (5장). 실제 사진으로 검증 필요 |
 | MFT 모드: 폴더만 검사해도 드라이브 전체를 읽음 | 중 | 폴더 검사는 일반 모드가 더 빠를 수 있음 |
 | GitHub Actions CI | 중 | v0.1부터 미완 |
