@@ -28,3 +28,6 @@ Thumbs.db
 # NuGet
 *.nupkg
 packages/
+# Six Labors (ImageSharp) license key - never commit
+sixlabors.lic
+*.lic

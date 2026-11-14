@@ -139,7 +139,7 @@
 | Microsoft.Extensions.Caching.Memory 8.0.0 (High) | EF Core 8.0.34 업그레이드로 해결 |
 | SQLitePCLRaw.lib.e_sqlite3 2.1.6 (High) | 〃 |
 | System.Text.Json 8.0.0 (High 2건) | 〃 |
-| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요. **키 신청 완료(2026-11-13), 발급 대기**. 실제 영향은 6.3 참고 |
+| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요. 1차 키 수신(2026-11-14)했으나 **Assembly 이름이 하나로 등록되어 검증 실패 → 정정 재신청(2026-11-14), 새 키 대기** (6.5). 실제 영향은 6.3 참고 |
 
 확인 방법: `dotnet list src\DupClean.Core\DupClean.Core.csproj package --vulnerable --include-transitive`
 
@@ -148,7 +148,7 @@
 - 가격 페이지: 연 매출 100만 달러 미만은 **무료 Community 라이선스를 신청**할 수 있다 (신청: https://licensing.sixlabors.com ). → 사장님이 들으신 내용과 일치.
 - **빌드 시 라이선스 키**: 직접 참조하는 프로젝트는 3.2.0(3.x 계열) / 4.0.0(4.x)부터 키가 있어야 빌드된다 (없으면 Release 빌드 실패: "No Six Labors license found"). 3.1.12 이하는 키 불필요.
 - 키 설정: `sixlabors.lic` 파일을 프로젝트 폴더에 두거나 환경변수 `SIXLABORS_LICENSE_KEY`. 공개 저장소에는 **assembly 범위 Community 키만** 올려도 되고, 무제한 키·상용 키는 비공개(저장소 시크릿)로 관리.
-- **진행 상황**: ① Community 라이선스 **신청 완료 (2026-11-13)** → ② 키 수신 대기 → ③ 키를 받으면 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 신청은 계정·개인정보가 필요해 사장님이 직접 진행했다. 신청서 양식과 필요한 값은 6.4 참고.
+- **진행 상황**: ① Community 라이선스 신청 (2026-11-13) → ② 1차 키 수신 (2026-11-14): **Assembly 이름이 쉼표로 이어진 문자열 하나로 등록되어 사용 불가** (6.5) → ③ **정정 재신청 (2026-11-14), 새 키 대기** → ④ 새 키가 오면 이름 검증 후 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 신청은 계정·개인정보가 필요해 사장님이 직접 진행했다. 신청서 양식과 필요한 값은 6.4 참고.
 - 참고: `README`는 MIT라고 되어 있으나 저장소에 `LICENSE` 파일이 없고, `plan_v0.1.md`의 "ImageSharp (MIT)"는 부정확하다(3.0부터 Split License). LICENSE 파일 추가는 저작권자 표기가 필요해 결정을 남겨 둔다.
 
 출처: [Six Labors 가격](https://sixlabors.com/pricing/) · [ImageSharp LICENSE](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE) · [Six Labors 문서](https://docs.sixlabors.com/articles/imagesharp/)
@@ -173,19 +173,50 @@
 
 ### 6.4 라이선스 키 신청 정보 (2026-11-13 신청)
 - 신청처: https://licensing.sixlabors.com (신청서 → "Apply Now"). 등록은 Paddle을 통해 처리되며 일부 국가는 지원되지 않을 수 있다.
-- 신청서 항목: 이름·이메일, 종류(Hobbyist / OpenSource / NonProfit / Commercial), **Assembly 이름**(대소문자 정확히), 프로젝트 이름·웹사이트, (선택) 등록번호, 메시지. OpenSource는 공개 저장소 링크가 필요하다.
-- DupClean의 Assembly 이름: ImageSharp를 직접 참조하는 `DupClean.Core`, `DupClean.Tests`, 그리고 실행 프로젝트 `DupClean`.
+- 신청서 항목: 이름·이메일, 종류(Hobbyist / OpenSource / NonProfit / Commercial), **Assembly 이름**(대소문자 정확히. **"Add assembly" 버튼으로 이름마다 입력칸을 따로 추가한다** — 한 칸에 쉼표로 이어 쓰면 이름 하나로 등록된다, 6.5 참고), 프로젝트 이름·웹사이트, (선택) 등록번호, 메시지. OpenSource는 공개 저장소 링크가 필요하다.
+- DupClean의 Assembly 이름: ImageSharp를 직접 참조하는 `DupClean.Core`, `DupClean.Tests`, 그리고 실행 프로젝트 `DupClean`. 키 검사는 ImageSharp를 **직접 참조하는 프로젝트(`DupClean.Core`, `DupClean.Tests`)에서만** 일어난다 (패키지에 `buildTransitive`가 없음). `DupClean`은 직접 참조하지 않아 필수는 아니지만 넣어도 무방하다.
 - OpenSource / Hobbyist는 **키가 자동 발급**되고, 그 외 종류는 심사를 거친다. OpenSource 키는 assembly 범위라 **공개 저장소에 올려도 된다**고 안내돼 있다.
 - 키에는 만료가 있다. **만료 전 90일 안에 같은 이메일로 재신청**해 갱신한다 (이메일은 계속 쓸 수 있는 주소로).
 - 키 신청 서류가 되는 `LICENSE` 파일이 아직 없다 (README만 MIT로 표기). 추가 시 저작권자 이름이 필요하다.
 
 **키를 받은 뒤 할 일 (체크리스트)**
-1. 키 형식 확인 (파일 `sixlabors.lic` 또는 문자열 — 형식은 안내 페이지에 명시되어 있지 않음).
+1. **받은 키 검증부터**: 필드 구성(`Id;Kind;ExpiryDateUtc;Key=Assembly:서명|서명`)과 **서명 개수 = 등록한 Assembly 이름 개수**인지 확인하고, 실제 이름(`DupClean.Core`, `DupClean.Tests`)으로 시험 빌드가 통과하는지 본다 (방법은 6.5). 업그레이드 PR을 만든 뒤에 문제를 발견하지 않도록 이 단계를 먼저 한다.
 2. `DupClean.Core.csproj`, `DupClean.Tests.csproj`의 ImageSharp를 3.2.0 이상으로 변경.
-3. 키 연결: `sixlabors.lic`을 프로젝트 폴더에 두거나 환경변수 `SIXLABORS_LICENSE_KEY` 설정. **assembly 범위 키만** 저장소에 올리고, 제한 없는 키·상용 키는 올리지 않는다.
+3. 키 연결: 저장소 루트의 `sixlabors.lic`를 `src/Directory.Build.props`가 자동으로 사용한다 (ImageSharp의 기본 검색은 프로젝트 폴더 **아래**만 훑어서 저장소 루트 파일을 못 찾기 때문에 직접 지정). 다른 방법은 환경변수 `SIXLABORS_LICENSE_KEY`. 키 파일은 `.gitignore`에 들어 있다. **assembly 범위 키만** 저장소에 올릴 수 있고, 제한 없는 키·상용 키는 올리지 않는다.
 4. `dotnet test`(83개) 통과, `publish.bat` Release 빌드 성공 확인.
 5. 재측정: 유사 이미지 판정이 바뀌지 않았는지 (5장의 정답 쌍 검증 재실행), 캐시 때문에 pHash 캐시를 다시 계산해야 하는지 확인.
 6. `dotnet list ... package --vulnerable`로 ImageSharp 경고가 사라졌는지 확인, README 서드파티 표와 이 보고서의 6장을 갱신.
+
+### 6.5 라이선스 키 적용 중 발생한 문제와 해결 (2026-11-14)
+키를 받아 ImageSharp 3.2.0으로 올리려 했으나 Release 빌드가 통과하지 않았다. 아래 순서로 원인을 찾았고, **새 키를 받아야 하는 상태**로 끝났다 (ImageSharp는 3.1.12로 되돌려 빌드는 정상).
+
+**문제 A — 키 파일이 있는데 "No Six Labors license found"**
+- 현상: 저장소 루트에 `sixlabors.lic`를 두고 3.2.0으로 Release 빌드하면 라이선스를 찾지 못한다.
+- 원인: ImageSharp 빌드 스크립트의 기본 검색이 **각 프로젝트 폴더 아래(`**/sixlabors.lic`)만** 훑는다. 저장소 루트의 파일은 대상이 아니다.
+- 해결: `src/Directory.Build.props`에서 `SixLaborsLicenseFile`을 저장소 루트의 파일로 지정 (파일이 있고, 키·파일을 직접 지정하지 않았을 때만).
+
+**문제 B — 파일을 찾은 뒤에도 "Six Labors license validation failed"**
+- 현상: 오류 메시지가 이유를 알려 주지 않는다 (`-v diag` 로그에도 없음).
+- **원인**: 신청서에서 Assembly 이름 3개를 **쉼표로 이어 한 칸에 입력**해서, 키가 `DupClean.Core, DupClean.Tests, DupClean`이라는 **이름 하나**에만 유효하게 발급됐다. 실제 프로젝트 이름과 일치하지 않으므로 모든 프로젝트에서 실패한다. (신청 방법 안내가 "이름을 나열"하는 식으로 모호했던 것도 원인이다. 올바른 방법은 "Add assembly" 버튼으로 칸을 하나씩 추가하는 것.)
+- **진단 순서 (재사용 가능)**
+  1. 키 파일의 **구조만** 확인 (값은 가림): 필드는 `Id;Kind;ExpiryDateUtc;Key=Assembly:서명|서명`이고, **서명 개수 = 등록된 Assembly 이름 개수**다. 이 키는 서명이 1개 → 이름 1개.
+  2. 종류(Community)·만료일(2028-02-10)이 정상이고, 메일의 라이선스 ID와 파일의 ID가 일치하는지 확인.
+  3. 파일 형식(한 줄 / 여러 줄 / 환경변수 / 빌드 속성)과 ImageSharp 버전(3.2.0, 4.0.0, 4.1.3)을 바꿔 시험 → 결과가 같아 원인이 **형식·버전이 아님**을 확인. (4.0.0은 새 키 형식을 못 읽고 Base64 예외를 내서 구분됨.)
+  4. 흔한 이름 22가지를 하나씩 빌드해 보았으나 모두 불일치 → **MSBuild에서 `ValidateLicenseTask`를 직접 일괄 호출**해 후보 1,448개를 한 번에 시험 → 일치하는 이름이 `DupClean.Core, DupClean.Tests, DupClean`(문자열 하나)임을 확인.
+- 해결: 신청서에서 "Add assembly"로 **이름마다 칸을 따로 추가해 정정 재신청 (2026-11-14)**. 이전 키에 맞추려고 프로젝트 이름을 바꾸는 방법은 쓰지 않았다.
+- 교훈: 키를 받으면 **업그레이드 전에 이름 검증부터** 한다 (6.4 체크리스트 1번).
+
+**문제 C — 키 파일 노출 위험**
+- 키 파일이 저장소 루트에 추적되지 않은 파일로 놓였다 → 실수로 커밋되면 공개 저장소에 올라간다.
+- 대응: `.gitignore`(`sixlabors.lic`, `*.lic`)를 가장 먼저 추가하고, 진단 중에는 키 값을 가려서(구조·길이만) 출력하고 진단 로그·임시 파일을 삭제했다. `.gitignore` 변경이 `master`에 없으면 다른 브랜치로 옮겼을 때 보호가 사라지므로 이 변경을 `master`에 반영한다. (assembly 범위 키는 공개 저장소에 올려도 된다고 안내돼 있으나, 올바른 키가 확인되기 전에는 올리지 않는다.)
+
+**문제 D — 도구 사용 중 겪은 오류**
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| `gh api /advisories/…`가 `C:/Program Files/Git/advisories/…`로 바뀌어 실패 | Git Bash가 `/`로 시작하는 인자를 파일 경로로 변환 | 맨 앞의 `/`를 뺌 (`gh api advisories/…`) |
+| MSBuild 프로젝트 로드 오류 `An error occurred while parsing EntityName` | 이름에 들어간 `&`를 XML로 바꾼 뒤(`&amp;`) `;`를 `%3B`로 치환해서 `&amp%3B`로 깨짐 | 순서를 **MSBuild 이스케이프(`;` `,` 줄바꿈) 먼저, XML 이스케이프 나중**으로 |
+| MSBuild 아이템의 후보가 0개 | PowerShell 함수가 배열을 풀어서 반환 | 전역 리스트에 누적하는 방식으로 재작성 |
+| 다른 폴더의 파일을 못 찾음 | 프로젝트 폴더 아래만 검색 (문제 A) | 파일 위치를 명시 |
 
 ---
 
@@ -193,7 +224,7 @@
 
 | 항목 | 우선순위 | 비고 |
 |------|---------|------|
-| ImageSharp 라이선스 키 발급 → 업그레이드 | **높음** | 키 **신청 완료(2026-11-13), 발급 대기**. 키를 받으면 6.4 체크리스트대로 진행 |
+| ImageSharp 라이선스 키 발급 → 업그레이드 | **높음** | 1차 키는 Assembly 이름 오류로 사용 불가 → **정정 재신청(2026-11-14), 새 키 대기** (6.5). 키를 받으면 **이름 검증부터** 6.4 체크리스트대로 진행 |
 | (임시 조치 결정) 유사 이미지 분석에서 TIFF 제외 | 중 | 키 발급 전에 실제로 닿는 취약점 2건을 줄이는 방법 (6.3). 적용 여부 미정 |
 | 유사 이미지 오탐 개선 | 중 | dHash/pHash + 그룹 병합 기준 (5장). 실제 사진으로 검증 필요 |
 | MFT 모드: 폴더만 검사해도 드라이브 전체를 읽음 | 중 | 폴더 검사는 일반 모드가 더 빠를 수 있음 |
@@ -211,4 +242,24 @@
 **UI**: `Themes/Light.xaml`·`Dark.xaml`·`Controls.xaml`(신규), `Services/ThemeManager.cs`(신규), `Views/MainWindow.xaml`·`SettingsWindow.xaml`·`ConfirmDialog.xaml`(신규), `ViewModels/MainViewModel.cs`·`SettingsViewModel.cs`, `Assets/Fonts/`(Figtree + OFL)
 **테스트**: `ProgressTrackerTests`·`ProgressFormatTests`·`FileHashCacheTests`(신규)
 **의존성**: EF Core 8.0.0 → 8.0.34
+**빌드/기타**: `publish.bat`·`win-x64.pubxml`(출력 위치를 저장소 `dist/`로), 앱 아이콘(`Assets/Icon/DupClean.ico`, `tools/make_icon.ps1`), `src/Directory.Build.props`(라이선스 키 파일 연결), `.gitignore`(키 파일 제외)
 **알림**: pHash 캐시 테이블이 `phash_cache_v2`로 바뀌어 기존 유사 이미지 캐시는 첫 스캔 때 다시 계산된다.
+
+---
+
+## 9. 작업 중 발생한 문제와 해결 기록
+오늘(2026-11-14)의 라이선스 키 문제는 6.5에 자세히 적었다. 아래는 앞선 작업(11-12~13)에서 겪은 문제의 요약이다.
+
+| 문제 | 원인 | 해결 / 교훈 |
+|------|------|-------------|
+| Rust 벤치마크 빌드가 실행되지 않음 (오류 4551) | Windows 애플리케이션 제어 정책이 새로 빌드한 실행 파일을 차단 | 정책을 우회하지 않고 해제 후 재실행 |
+| ImageSharp 업그레이드 시 Release 빌드가 라이선스를 요구 | 3.2.0 / 4.x부터 빌드 시 키 필요 | 3.1.12 유지, 키 신청 (6장) |
+| 테두리가 노란색으로 보임 | astryx 색(CSS `RRGGBBAA`)을 WPF(`AARRGGBB`) 순서로 변환하지 않음 | 변환. **실제 화면을 띄워 확인**해서 발견함 |
+| 화면 확인 자동화가 앱 밖의 화면까지 건드릴 위험 | 화면 좌표 클릭, 전체 화면 캡처 | 마우스·전체 화면 캡처를 쓰지 않고, UI 자동화(`InvokePattern`) + 앱 창 내용만 캡처(`PrintWindow`)로 변경 |
+| HDD에서 처음 정한 스레드 수(해시 2/이미지 4)가 최적이 아님 | 추정으로 정함. 이미지 스레드 32개는 2배 이상 느림 | **캐시를 비운 상태에서 구성별로 실측** → 해시 1/이미지 8 (4장) |
+| 유사 이미지 그룹 수가 277 → 263으로 줄어 정확도 하락처럼 보임 | 연결된 이미지가 한 그룹으로 합쳐지는 방식 | 정답을 아는 합성 데이터로 쌍 단위 검증 → 정확도 동일 (5장). 지표 선택에 주의 |
+| 마이크로벤치마크(3.6배)보다 실제 효과(약 2배)가 작음 | 단순한 합성 이미지는 압축 해제 비용이 작아 축소 이득이 과대평가됨 | 실제 크기·복잡도의 이미지로 다시 측정, 보고서에는 실측값만 기재 |
+| 첫 스캔이 오히려 느려진 사례 (3,500장, 0.49 → 0.64초) | 해시 캐시 기록 비용 | 숨기지 않고 보고서에 기재 (재스캔 0.45 → 0.03초로 상쇄) |
+| `publish.bat`의 한글 깨짐, "파일을 찾을 수 없음" | UTF-8 파일을 CP949 콘솔이 읽음, 확인 경로가 출력 폴더와 달랐음 | `chcp 65001`, 출력 위치를 저장소 `dist/`로 통일, 실제 출력 파일 확인 |
+| 아이콘 스크립트가 일부 크기를 못 읽는 `.ico`를 생성 | 작은 크기를 PNG로 저장(일부 도구 미지원), PowerShell 함수 반환값 배열이 풀려 기록 실패, 파일 앞 BOM 중복 | 256px만 PNG·나머지는 BMP, `[byte[]]` 변환, BOM 1개 확인 |
+| 긴 측정 작업이 호출이 끝나면 사라짐 / 스크립트 인자가 첫 값만 전달 | 백그라운드 작업 수명, `-File`의 배열 인자 처리 | 정식 백그라운드 실행 사용, 인자를 `;`로 구분한 문자열 하나로 전달 |
