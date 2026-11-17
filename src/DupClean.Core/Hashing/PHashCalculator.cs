@@ -24,9 +24,12 @@ public sealed class PHashCalculator
 {
     private static readonly ILogger Log = Serilog.Log.ForContext<PHashCalculator>();
 
+    // TIFF(.tif/.tiff)는 임시로 제외한다: ImageSharp 3.1.12의 TIFF 읽기 취약점 2건
+    // (GHSA-v76p-62qx-wwq2, GHSA-wmxv-xphr-5c9g — 조작된 파일로 앱 종료·스캔 멈춤) 때문.
+    // 라이선스 키를 받아 3.2.0 이상으로 올리면 다시 넣는다. 완전 중복 검사는 TIFF도 그대로 된다.
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif"
+        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"
     };
 
     public static bool IsImage(FileEntry entry) =>

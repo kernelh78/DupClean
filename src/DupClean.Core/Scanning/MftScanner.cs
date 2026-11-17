@@ -226,6 +226,7 @@ public sealed class MftScanner : IFileScanner
             var fullPath = ResolvePath(frn);
             if (fullPath is null) continue;
             if (!fullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase)) continue;
+            if (Actions.QuarantineLocations.IsInsideQuarantine(fullPath)) continue;   // 격리 폴더 제외
             if (options.ExcludePaths.Any(excl =>
                     fullPath.StartsWith(excl, StringComparison.OrdinalIgnoreCase))) continue;
 

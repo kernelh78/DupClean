@@ -27,4 +27,17 @@ public partial class ConfirmDialog : Window
         dialog.OkButton.Style   = (Style)Application.Current.FindResource(danger ? "DangerButton" : "PrimaryButton");
         return dialog.ShowDialog() == true;
     }
+
+    /// <summary>알림 창 (확인 버튼만). 실행을 막은 이유나 실패 목록을 보여 줄 때 쓴다.</summary>
+    public static void Inform(Window? owner, string title, string message)
+    {
+        var dialog = new ConfirmDialog { Owner = owner };
+        dialog.TitleText.Text   = title;
+        dialog.MessageText.Text = message;
+        dialog.OkButton.Content = "확인";
+        dialog.OkButton.Style   = (Style)Application.Current.FindResource("PrimaryButton");
+        dialog.OkButton.IsCancel = true;                 // Esc로도 닫힘
+        dialog.CancelButton.Visibility = Visibility.Collapsed;
+        dialog.ShowDialog();
+    }
 }

@@ -191,7 +191,14 @@ public sealed class SparseHasher
                     }
                 }
 
-                results[r.index] = new FileHash(r.file, r.sampleHash, fullHash ?? r.sampleHash);
+                // 큰 파일은 전체 해시가 있어야만 "완전 중복"으로 인정한다.
+                // 전체를 읽지 못했으면(디스크 오류 등) 앞·중간·끝 샘플만 같다는 이유로 중복 처리하지 않는다.
+                var isLarge = r.file.Size > _options.DirectHashThresholdBytes;
+                results[r.index] = isLarge
+                    ? (fullHash is null
+                        ? new FileHash(r.file, null, null)
+                        : new FileHash(r.file, r.sampleHash, fullHash))
+                    : new FileHash(r.file, r.sampleHash, r.sampleHash);
             }
             finally { semaphore.Release(); }
         }).ToList();
