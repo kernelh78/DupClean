@@ -108,6 +108,9 @@ public sealed class IoScanner : IFileScanner
             ShouldRecursePredicate = (ref FileSystemEntry entry) =>
             {
                 if (!entry.IsDirectory) return false;
+                // 격리 폴더(.dup_trash)는 검사하지 않는다 (격리한 파일이 다시 중복으로 잡히지 않게)
+                if (entry.FileName.Equals(Actions.QuarantineLocations.FolderName, StringComparison.OrdinalIgnoreCase))
+                    return false;
                 var fullPath = entry.ToFullPath();
                 return !options.ExcludePaths.Any(excl =>
                     fullPath.StartsWith(excl, StringComparison.OrdinalIgnoreCase));

@@ -31,15 +31,16 @@ Unlike simple filename comparison, DupClean uses both **SHA-256 hashing** and **
 ### Cleanup
 | Feature | Description |
 |---------|-------------|
-| **Quarantine** | Move to `.dup_trash` folder (auto-purge after 30 days, restorable) |
+| **Quarantine** | Move to a `.dup_trash` folder on the same drive as the file — no cross-drive copy, so it is instant (auto-purge after 30 days, restorable) |
 | **Recycle Bin Delete** | Send to Windows Recycle Bin (restorable) |
-| **Hard Link Replace** | Replace duplicates with NTFS hard links — keeps all paths, reclaims disk space (NTFS only) |
-| **Undo** | All actions recorded in SQLite; undo one step at a time |
+| **Hard Link Replace** | Replace **exact** duplicates with NTFS hard links — keeps all paths, reclaims disk space. Contents are re-verified right before replacing; never applied to similar images (NTFS only) |
+| **Undo** | Quarantine and hard-link actions are recorded in SQLite; undo one step at a time, even after a new scan or an app restart (Recycle Bin deletions are restored from the Windows Recycle Bin) |
+| **Safeguards** | Blocks the action when every file of an exact-duplicate group is selected · skips files changed since the scan · lists files that could not be processed |
 
 ### Automation
 | Feature | Description |
 |---------|-------------|
-| **Auto-Select** | Automatically marks files for deletion using name patterns (copy, 복사본...), path depth, and date rules |
+| **Auto-Select** | Marks files for deletion in exact-duplicate groups using name patterns (copy, 복사본...), path depth, and date rules (similar images are left for manual review) |
 | **Master Folder Protection** | Files in designated folders are never auto-selected |
 | **CSV Export** | Save scan results to a CSV file |
 
@@ -132,11 +133,11 @@ The caches are safe to delete (the next scan is just as slow as the first).
 
 ## License
 
-MIT License
+MIT License — Copyright © 2026 [Finevalue](https://finevalue.kr) ([LICENSE](LICENSE))
 
 ### Third-party licenses
 | Component | License | Note |
 |-----------|---------|------|
-| SixLabors.ImageSharp | Six Labors Split License | Free for open-source and small (< USD 1M annual revenue) use, but **versions 3.2.0+ require a license key at build time**. Currently on 3.1.12, which has known vulnerabilities; upgrade planned once a key is issued ([details](report_v0.2.md)) |
+| SixLabors.ImageSharp | Six Labors Split License | Free for open-source and small (< USD 1M annual revenue) use, but **versions 3.2.0+ require a license key at build time**. Currently on 3.1.12, which has known vulnerabilities; upgrade planned once a key is issued ([details](report_v0.2.md)). Until then **TIFF is excluded from similar-image analysis** (exact-duplicate detection still works) |
 | Figtree font | SIL Open Font License 1.1 | `src/DupClean.UI/Assets/Fonts/OFL.txt` |
 | astryx design tokens | MIT (Meta) | Only color / radius values were referenced; no code is used |

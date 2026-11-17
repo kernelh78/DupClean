@@ -42,9 +42,6 @@ public sealed class DeleteAction : IDuplicationAction
             }
         }
 
-        if (errors.Count > 0 && records.Count == 0)
-            return ActionResult.Fail(ActionType, string.Join("; ", errors));
-
-        return ActionResult.Ok(ActionType, records);
+        return ActionResult.From(ActionType, records, errors);
     }
 }
