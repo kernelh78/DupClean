@@ -139,7 +139,7 @@
 | Microsoft.Extensions.Caching.Memory 8.0.0 (High) | EF Core 8.0.34 업그레이드로 해결 |
 | SQLitePCLRaw.lib.e_sqlite3 2.1.6 (High) | 〃 |
 | System.Text.Json 8.0.0 (High 2건) | 〃 |
-| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요. 1차 키 수신(2026-11-14)했으나 **Assembly 이름이 하나로 등록되어 검증 실패 → 정정 재신청(2026-11-14), 새 키 대기** (6.5). 실제 영향은 6.3 참고 |
+| **SixLabors.ImageSharp 3.1.12 (High 4 + Moderate 2)** | ⚠️ **미해결** — 패치 버전은 라이선스 키 필요. 1차 키 수신(2026-11-13, 정정: 원래 11-14로 기록)했으나 **Assembly 이름이 하나로 등록되어 검증 실패 → 정정 재신청(2026-11-14), 새 키 대기** (6.5). 실제 영향은 6.3 참고 |
 
 확인 방법: `dotnet list src\DupClean.Core\DupClean.Core.csproj package --vulnerable --include-transitive`
 
@@ -148,7 +148,7 @@
 - 가격 페이지: 연 매출 100만 달러 미만은 **무료 Community 라이선스를 신청**할 수 있다 (신청: https://licensing.sixlabors.com ). → 사장님이 들으신 내용과 일치.
 - **빌드 시 라이선스 키**: 직접 참조하는 프로젝트는 3.2.0(3.x 계열) / 4.0.0(4.x)부터 키가 있어야 빌드된다 (없으면 Release 빌드 실패: "No Six Labors license found"). 3.1.12 이하는 키 불필요.
 - 키 설정: `sixlabors.lic` 파일을 프로젝트 폴더에 두거나 환경변수 `SIXLABORS_LICENSE_KEY`. 공개 저장소에는 **assembly 범위 Community 키만** 올려도 되고, 무제한 키·상용 키는 비공개(저장소 시크릿)로 관리.
-- **진행 상황**: ① Community 라이선스 신청 (2026-11-13) → ② 1차 키 수신 (2026-11-14): **Assembly 이름이 쉼표로 이어진 문자열 하나로 등록되어 사용 불가** (6.5) → ③ **정정 재신청 (2026-11-14), 새 키 대기** → ④ 새 키가 오면 이름 검증 후 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 신청은 계정·개인정보가 필요해 사장님이 직접 진행했다. 신청서 양식과 필요한 값은 6.4 참고.
+- **진행 상황**: ① Community 라이선스 신청 (kernelh@naver.com) → ② 1차 키 수신 (2026-11-13 00:14, 정정: 원래 11-14로 기록): **Assembly 이름이 쉼표로 이어진 문자열 하나로 등록되어 사용 불가** (6.5) → ③ **정정 재신청 (2026-11-14), 새 키 대기** → ④ 새 키가 오면 이름 검증 후 ImageSharp를 3.2.0 이상으로 업그레이드(취약점 해결). 신청은 계정·개인정보가 필요해 사장님이 직접 진행했다. 신청서 양식과 필요한 값은 6.4 참고.
 - 참고: `README`는 MIT라고 되어 있으나 저장소에 `LICENSE` 파일이 없고, `plan_v0.1.md`의 "ImageSharp (MIT)"는 부정확하다(3.0부터 Split License). LICENSE 파일 추가는 저작권자 표기가 필요해 결정을 남겨 둔다.
 
 출처: [Six Labors 가격](https://sixlabors.com/pricing/) · [ImageSharp LICENSE](https://github.com/SixLabors/ImageSharp/blob/main/LICENSE) · [Six Labors 문서](https://docs.sixlabors.com/articles/imagesharp/)
