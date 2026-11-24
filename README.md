@@ -63,7 +63,7 @@ DupClean은 사진·동영상·문서에서 중복 파일을 자동으로 탐지
 ## 시작하기
 
 ### 요구 사항
-- Windows 10 / 11 (x64)
+- Windows 10 / 11 (x64 또는 ARM64)
 - .NET 8 런타임 (Self-Contained 버전은 불필요)
 
 ### 설치 없이 바로 실행
@@ -79,8 +79,12 @@ dotnet run --project src/DupClean.UI/DupClean.UI.csproj
 
 ### 배포용 EXE 빌드
 ```bash
-dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c Release
-# → dist/DupClean.exe (단일 파일, ~82MB, .NET 런타임 내장)
+publish.bat
+# → dist/win-x64/DupClean.exe   (일반 Intel·AMD PC, 단일 파일 ~83MB, .NET 런타임 내장)
+# → dist/win-arm64/DupClean.exe (ARM PC, 단일 파일 ~78MB)
+
+# 한 버전만 만들 때
+dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-arm64 -c Release
 ```
 
 ---
