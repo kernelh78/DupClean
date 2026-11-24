@@ -63,7 +63,7 @@ Unlike simple filename comparison, DupClean uses both **SHA-256 hashing** and **
 ## Getting Started
 
 ### Requirements
-- Windows 10 / 11 (x64)
+- Windows 10 / 11 (x64 or ARM64)
 - .NET 8 Runtime (not required for Self-Contained build)
 
 ### Run Without Installing
@@ -79,8 +79,12 @@ dotnet run --project src/DupClean.UI/DupClean.UI.csproj
 
 ### Build Release EXE
 ```bash
-dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-x64 -c Release
-# → dist/DupClean.exe (single file, ~82MB, .NET runtime bundled)
+publish.bat
+# → dist/win-x64/DupClean.exe   (Intel/AMD PCs, single file ~83MB, .NET runtime bundled)
+# → dist/win-arm64/DupClean.exe (ARM PCs, single file ~78MB)
+
+# Build one version only
+dotnet publish src/DupClean.UI/DupClean.UI.csproj -p:PublishProfile=win-arm64 -c Release
 ```
 
 ---
