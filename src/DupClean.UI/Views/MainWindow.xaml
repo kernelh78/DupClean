@@ -110,14 +110,14 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                         <Button Margin="0,0,8,0" Padding="12,7" Command="{Binding QuarantineCommand}"
                                 AutomationProperties.Name="격리 이동"
-                                ToolTip="선택한 파일을 격리 폴더로 이동 (30일 후 자동 삭제, Undo 가능)">
+                                ToolTip="선택한 파일을 격리 폴더로 이동 (30일 후 자동 삭제, 되돌리기 가능)">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE7B8;"/>
                                 <TextBlock Text="격리 이동" Margin="8,0,0,0"/>
                             </StackPanel>
                         </Button>
                         <Button Margin="0,0,8,0" Padding="12,7" Style="{StaticResource DangerButton}"
-                                Command="{Binding DeleteCommand}" ToolTip="선택한 파일을 휴지통으로 이동"
+                                Command="{Binding DeleteCommand}" ToolTip="선택한 파일을 Windows 휴지통으로 이동 (되돌리기 버튼으로는 복원되지 않음)"
                                 AutomationProperties.Name="삭제">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE74D;"/>
@@ -126,7 +126,7 @@
                         </Button>
                         <Button Margin="0,0,8,0" Padding="12,7" Command="{Binding SmartSelectAllCommand}"
                                 AutomationProperties.Name="자동 선택"
-                                ToolTip="규칙에 따라 지울 파일을 자동으로 고릅니다 (한 번 더 누르면 해제)">
+                                ToolTip="완전 중복 그룹에서 지울 파일을 규칙에 따라 자동으로 고릅니다. 유사 이미지는 직접 보고 고르세요 (한 번 더 누르면 해제)">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE762;"/>
                                 <TextBlock Text="자동 선택" Margin="8,0,0,0"/>
@@ -134,7 +134,7 @@
                         </Button>
                         <Button Margin="0,0,8,0" Padding="12,7" Command="{Binding HardLinkCommand}"
                                 AutomationProperties.Name="하드링크"
-                                ToolTip="선택 파일을 원본의 하드링크로 교체 (NTFS 전용, 같은 드라이브 내)">
+                                ToolTip="완전 중복 파일을 원본의 하드링크로 교체 — 유사 이미지에는 적용되지 않음 (NTFS 전용, 같은 드라이브 내)">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource Icon}" Text="&#xE71B;"/>
                                 <TextBlock Text="하드링크" Margin="8,0,0,0"/>

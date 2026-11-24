@@ -53,11 +53,18 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(QuarantineCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
-    [NotifyCanExecuteChangedFor(nameof(UndoCommand))]
     [NotifyCanExecuteChangedFor(nameof(SmartSelectAllCommand))]
     [NotifyCanExecuteChangedFor(nameof(HardLinkCommand))]
     [NotifyCanExecuteChangedFor(nameof(ExportCsvCommand))]
     private bool _hasScanResult;
+
+    /// <summary>
+    /// 되돌릴 작업이 기록에 남아 있는지. 스캔 결과와 무관하다 —
+    /// 정리를 모두 끝내 목록이 비었거나, 프로그램을 다시 켠 뒤에도 되돌릴 수 있어야 한다.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UndoCommand))]
+    private bool _canUndo;
 
     public ObservableCollection<DuplicateGroupViewModel> Groups { get; } = [];
 
@@ -122,7 +129,20 @@ public partial class MainViewModel : ObservableObject
         _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _elapsedTimer.Tick += (_, _) => ElapsedText = ProgressFormat.Duration(_scanWatch.Elapsed);
 
+        _ = RefreshCanUndoAsync();   // 이전 실행에서 한 작업도 되돌릴 수 있게 시작할 때 확인
+
         ThemeManager.Changed += () => ThemeIcon = ThemeManager.IsDark ? "" : "";
+    }
+
+    private async Task RefreshCanUndoAsync()
+    {
+        if (_undoManager is null) { CanUndo = false; return; }
+        try { CanUndo = await _undoManager.HasUndoableAsync(); }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning("되돌리기 기록 확인 실패: {Msg}", ex.Message);
+            CanUndo = false;
+        }
     }
 
     // ── 커맨드 ────────────────────────────────────────────────────
@@ -274,10 +294,11 @@ public partial class MainViewModel : ObservableObject
     {
         var selected = GetSelectedFiles();
         if (selected.Count == 0) return;
+        if (!CheckSelectionSafety("격리 이동", out var warning)) return;
 
         if (!ConfirmAction("격리 이동",
-                $"{selected.Count:N0}개 파일을 격리 폴더로 이동하시겠습니까?\n\n30일 후 자동 삭제됩니다. Undo로 복원 가능합니다.",
-                "격리 이동"))
+                $"{selected.Count:N0}개 파일을 격리 폴더로 이동하시겠습니까?\n\n30일 후 자동 삭제됩니다. 되돌리기로 복원할 수 있습니다.{warning}",
+                "격리 이동", danger: warning.Length > 0))
             return;
 
         await ExecuteActionAsync(new QuarantineAction(), selected, "격리 이동 완료");
@@ -288,9 +309,11 @@ public partial class MainViewModel : ObservableObject
     {
         var selected = GetSelectedFiles();
         if (selected.Count == 0) return;
+        if (!CheckSelectionSafety("휴지통으로 이동", out var warning)) return;
 
         if (!ConfirmAction("휴지통으로 이동",
-                $"{selected.Count:N0}개 파일을 휴지통으로 이동하시겠습니까?",
+                $"{selected.Count:N0}개 파일을 휴지통으로 이동하시겠습니까?\n\n" +
+                $"되돌리기 버튼으로는 복원되지 않습니다. 필요하면 Windows 휴지통에서 직접 복원하세요.{warning}",
                 "휴지통으로 이동", danger: true))
             return;
 
@@ -301,34 +324,96 @@ public partial class MainViewModel : ObservableObject
     private async Task HardLinkAsync()
     {
         // 그룹별로 (중복 파일 → 원본 파일) 쌍 구성
+        // 하드링크는 "내용이 완전히 같은" 파일에만 쓸 수 있다.
+        // 유사 이미지에 쓰면 비슷하지만 다른 사진의 내용이 사라지므로 완전 중복 그룹만 대상으로 한다.
         var linkTargets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var targets     = new List<FileEntry>();
+        var skippedSimilar  = 0;
+        var skippedNoKeeper = 0;
         foreach (var group in Groups)
         {
+            var picked = group.Files.Where(f => f.IsSelected).ToList();
+            if (picked.Count == 0) continue;
+
+            if (!group.IsExact) { skippedSimilar += picked.Count; continue; }
+
             var keeper = group.Files.FirstOrDefault(f => !f.IsSelected);
-            if (keeper is null) continue;
-            foreach (var dup in group.Files.Where(f => f.IsSelected))
+            if (keeper is null) { skippedNoKeeper += picked.Count; continue; }
+
+            foreach (var dup in picked)
+            {
                 linkTargets[dup.Entry.FullPath] = keeper.Entry.FullPath;
+                targets.Add(dup.Entry);
+            }
         }
 
-        if (linkTargets.Count == 0) return;
+        var skipNote = string.Empty;
+        if (skippedSimilar > 0)
+            skipNote += $"\n\n유사 이미지 {skippedSimilar:N0}개는 제외됩니다 (내용이 같지 않아 하드링크로 바꿀 수 없음).";
+        if (skippedNoKeeper > 0)
+            skipNote += $"\n\n그룹의 파일을 전부 선택한 {skippedNoKeeper:N0}개는 제외됩니다 (남길 원본이 없음).";
+
+        if (linkTargets.Count == 0)
+        {
+            if (skipNote.Length > 0)
+                ConfirmDialog.Inform(System.Windows.Application.Current.MainWindow,
+                    "하드링크로 교체할 파일이 없습니다", "완전 중복 그룹에서 지울 파일을 선택하세요." + skipNote);
+            return;
+        }
 
         if (!ConfirmAction("하드링크로 교체",
                 $"{linkTargets.Count:N0}개 파일을 하드링크로 교체하시겠습니까?\n\n" +
                 "원본 파일은 유지되고, 중복 파일 위치에 하드링크가 생성됩니다.\n" +
-                "NTFS 드라이브 내에서만 동작합니다.",
+                "교체 직전에 내용이 같은지 다시 확인합니다. NTFS 드라이브 내에서만 동작합니다." + skipNote,
                 "교체"))
             return;
 
-        var selected = GetSelectedFiles();
-        await ExecuteActionAsync(new HardLinkAction(linkTargets), selected, "하드링크 교체 완료");
+        await ExecuteActionAsync(new HardLinkAction(linkTargets), targets, "하드링크 교체 완료");
     }
 
-    [RelayCommand(CanExecute = nameof(HasScanResult))]
+    [RelayCommand(CanExecute = nameof(CanUndo))]
     private async Task UndoAsync()
     {
         if (_undoManager is null) return;
-        var ok = await _undoManager.UndoLastAsync();
-        StatusMessage = ok ? "마지막 작업이 복원되었습니다." : "복원할 작업이 없습니다.";
+
+        UndoResult? result;
+        try { result = await _undoManager.UndoLastAsync(); }
+        catch (Exception ex)
+        {
+            StatusMessage = $"되돌리기 실패: {ex.Message}";
+            return;
+        }
+        await RefreshCanUndoAsync();
+
+        if (result is null)
+        {
+            StatusMessage = "되돌릴 작업이 없습니다.";
+            return;
+        }
+
+        // 실제로 복원된 것과 그렇지 못한 것을 구분해서 알린다.
+        if (result.ActionType == "Delete")
+        {
+            StatusMessage = "휴지통으로 보낸 파일은 여기서 되돌릴 수 없습니다.";
+            ConfirmDialog.Inform(System.Windows.Application.Current.MainWindow,
+                "휴지통에서 직접 복원하세요",
+                $"마지막 작업은 '휴지통으로 이동'({result.NotRestorable:N0}개)이었습니다.\n\n" +
+                "휴지통으로 보낸 파일은 프로그램이 되돌릴 수 없습니다. " +
+                "바탕 화면의 휴지통을 열어 파일을 선택한 뒤 '복원'을 누르세요.");
+            return;
+        }
+
+        var rescanNote = result.Restored > 0 ? " 목록에 다시 보려면 스캔을 다시 하세요." : string.Empty;
+        if (result.AllRestored)
+        {
+            StatusMessage = $"마지막 작업을 되돌렸습니다 — {result.Restored:N0}개 복원.{rescanNote}";
+            return;
+        }
+
+        StatusMessage = $"되돌리기: {result.Restored:N0}개 복원, {result.Failures.Count:N0}개 실패.{rescanNote}";
+        ConfirmDialog.Inform(System.Windows.Application.Current.MainWindow,
+            "일부 파일을 복원하지 못했습니다",
+            $"복원 {result.Restored:N0}개 · 실패 {result.Failures.Count:N0}개\n\n" + SummarizeErrors(result.Failures));
     }
 
     [RelayCommand]
@@ -424,8 +509,13 @@ public partial class MainViewModel : ObservableObject
         var selector = new SmartSelector(masterFolders);
         var selected = 0;
 
+        // 자동 선택은 "내용이 완전히 같은" 그룹에만 적용한다.
+        // 유사 이미지는 오탐이 있을 수 있고 어느 쪽이 원본(큰 해상도)인지 규칙만으로 알 수 없어, 직접 보고 고르게 둔다.
+        var similarGroups = 0;
         foreach (var group in Groups)
         {
+            if (!group.IsExact) { similarGroups++; continue; }
+
             var entries = group.Files.Select(f => f.Entry).ToList();
             var toDelete = selector.SelectFromGroupWithDate(entries);
             var deleteSet = toDelete.ToHashSet();
@@ -436,9 +526,12 @@ public partial class MainViewModel : ObservableObject
             selected += toDelete.Count;
         }
 
+        var similarNote = similarGroups > 0
+            ? $" (유사 이미지 {similarGroups:N0}개 그룹은 직접 보고 선택하세요)"
+            : string.Empty;
         StatusMessage = selected > 0
-            ? $"자동 선택 완료 — {selected:N0}개 파일이 선택됨"
-            : "자동 선택: 선택된 파일 없음";
+            ? $"자동 선택 완료 — 완전 중복 {selected:N0}개 파일이 선택됨{similarNote}"
+            : $"자동 선택: 선택된 파일 없음{similarNote}";
     }
 
     // ── 폴더 선택 ────────────────────────────────────────────────
@@ -475,13 +568,36 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            var result = await action.ExecuteAsync(targets);
+            // 스캔한 뒤에 바뀐 파일은 건드리지 않는다 (더 이상 중복이라고 믿을 수 없음)
+            var skipped = new List<string>();
+            var fresh   = new List<FileEntry>(targets.Count);
+            await Task.Run(() =>
+            {
+                foreach (var t in targets)
+                {
+                    var reason = FileGuard.ChangedSinceScan(t);
+                    if (reason is null) fresh.Add(t);
+                    else skipped.Add($"{t.FileName}: {reason}");
+                }
+            });
+
+            var result = fresh.Count > 0
+                ? await action.ExecuteAsync(fresh)
+                : ActionResult.Fail(action.ActionType, "처리할 수 있는 파일이 없음");
+
+            var problems = skipped.Concat(result.Errors ?? []).ToList();
+
             if (result.Success)
             {
                 if (_undoManager is not null)
+                {
                     await _undoManager.RecordAsync(result);
+                    await RefreshCanUndoAsync();
+                }
 
-                StatusMessage = $"{successMessage} ({result.Records.Count:N0}개)";
+                StatusMessage = problems.Count == 0
+                    ? $"{successMessage} ({result.Records.Count:N0}개)"
+                    : $"{successMessage} ({result.Records.Count:N0}개) — {problems.Count:N0}개는 처리하지 못함";
 
                 // 처리된 파일을 UI에서 제거
                 var processedPaths = result.Records
@@ -501,13 +617,62 @@ public partial class MainViewModel : ObservableObject
             }
             else
             {
-                StatusMessage = $"오류: {result.ErrorMessage}";
+                StatusMessage = $"처리하지 못했습니다 ({problems.Count:N0}개 실패)";
             }
+
+            // 실패한 파일을 숨기지 않고 보여 준다
+            if (problems.Count > 0)
+                ConfirmDialog.Inform(System.Windows.Application.Current.MainWindow,
+                    "처리하지 못한 파일이 있습니다",
+                    $"성공 {result.Records.Count:N0}개 · 실패 {problems.Count:N0}개\n\n" + SummarizeErrors(problems));
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "작업 실행 중 오류");
+            StatusMessage = $"작업 중 오류: {ex.Message}";
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// 그룹의 파일을 전부 선택했는지 확인한다.
+    /// 완전 중복 그룹을 전부 선택했으면 실행을 막고(false 반환) 이유를 알린다.
+    /// 유사 이미지 그룹을 전부 선택했으면 확인 창에 덧붙일 경고문을 warning으로 돌려준다.
+    /// </summary>
+    private bool CheckSelectionSafety(string actionName, out string warning)
+    {
+        warning = string.Empty;
+        var report = SelectionSafety.Analyze(
+            Groups.Select(g => (g.Group.Kind, g.Files.Count, g.Files.Count(f => f.IsSelected))));
+
+        if (report.MustBlock)
+        {
+            ConfirmDialog.Inform(System.Windows.Application.Current.MainWindow,
+                "원본까지 사라지는 그룹이 있습니다",
+                $"완전 중복 그룹 {report.ExactGroupsFullySelected:N0}개에서 모든 파일이 선택되어 있습니다.\n\n" +
+                $"이대로 '{actionName}'을(를) 하면 남는 파일이 하나도 없습니다. " +
+                "각 그룹에서 남길 파일 1개의 체크를 해제한 뒤 다시 시도하세요.");
+            StatusMessage = $"실행하지 않았습니다 — 완전 중복 그룹 {report.ExactGroupsFullySelected:N0}개에서 모든 파일이 선택됨";
+            return false;
+        }
+
+        if (report.ShouldWarn)
+            warning = $"\n\n⚠ 유사 이미지 그룹 {report.SimilarGroupsFullySelected:N0}개에서 모든 파일이 선택되어 있습니다. " +
+                      "이 그룹들은 남는 사진이 없습니다.";
+        return true;
+    }
+
+    /// <summary>실패 목록을 창에 넣기 좋게 줄인다 (앞의 8개 + 나머지 개수). 전체는 로그에 남는다.</summary>
+    private static string SummarizeErrors(IReadOnlyList<string> errors)
+    {
+        const int Max = 8;
+        var text = string.Join("\n", errors.Take(Max).Select(e => "• " + e));
+        if (errors.Count > Max)
+            text += $"\n…외 {errors.Count - Max:N0}개 (자세한 내용은 로그 파일 참고)";
+        return text;
     }
 
     private static bool ConfirmAction(string title, string message, string confirmText, bool danger = false)
